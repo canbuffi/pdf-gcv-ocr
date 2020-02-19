@@ -6,6 +6,9 @@ This uses the `DOCUMENT_TEXT_DETECTION` operation on Cloud Vision, but could eas
 
 To convert the GCV JSON output to hOCR - a [modified version](https://github.com/pratheekrebala/gcv2hocr) of the [gcv2hocr](https://github.com/dinosauria123/gcv2hocr) is used (which only works with `TEXT_DETECTION`). To convert this hOCR output to a searchable PDF, the `hocr-pdf` script from [hocr-tools](https://github.com/tmbdev/hocr-tools) package is used. This script is included at `./lib/hocr-pdf.py`.
 
+
+@qnstie: Updated the code to work with recent versions of the libraries and APIS, modified PDF processing to better handle the fonts and word locations.
+
 ## How it works
 
 To convert a PDF using the default options just run `npm run all <pdfFile>` which will output the searchable PDF file to `STDOUT`. It also creates a folder called `<pdfFile>_ocr` which contains the extracted images, the XML representation of the original PDF and the hOCR output for each page.

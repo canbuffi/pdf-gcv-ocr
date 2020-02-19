@@ -54,7 +54,8 @@ def export_pdf(playground, default_dpi):
     pdf = Canvas(StdoutWrapper(), pageCompression=1)
     pdf.setCreator('hocr-tools')
     pdf.setTitle(os.path.basename(playground))
-    images = sorted(glob.glob(os.path.join(playground, '*.png')))
+    images = glob.glob(os.path.join(playground, '*.png')) + glob.glob(os.path.join(playground, '*.jpg'))
+    images = sorted(images, key=os.path.getmtime)
     dpi = default_dpi
     for image in images:
         im = Image.open(image)
@@ -63,8 +64,10 @@ def export_pdf(playground, default_dpi):
             dpi = im.info['dpi'][0]
         except KeyError:
             pass
-        width = w * 72 / dpi
-        height = h * 72 / dpi
+        # width = w * 72 / dpi
+        # height = h * 72 / dpi
+        width, height = w, h # ignore DPIs
+
         pdf.setPageSize((width, height))
         pdf.drawImage(image, 0, 0, width=width, height=height)
         add_text_layer(pdf, image, height, dpi)
@@ -74,14 +77,16 @@ def export_pdf(playground, default_dpi):
 
 def add_text_layer(pdf, image, height, dpi):
     """Draw an invisible text layer for OCR data"""
-    p1 = re.compile('bbox((\s+\d+){4})')
-    p2 = re.compile('baseline((\s+[\d\.\-]+){2})')
+    p1 = re.compile('bbox((\s+\-?\d+){4})')
+    p2 = re.compile('baseline((\s+[\-?\d\.\-]+){2})')
     hocrfile = os.path.splitext(image)[0] + ".hocr"
     hocr = etree.parse(hocrfile, html.XHTMLParser())
     for line in hocr.xpath('//*[@class="ocr_line"]'):
-        linebox = p1.search(line.attrib['title']).group(1).split()
+        title = line.attrib['title']
+        linebox = p1.search(title).group(1).split()
+
         try:
-            baseline = p2.search(line.attrib['title']).group(1).split()
+            baseline = p2.search(title).group(1).split()
         except AttributeError:
             baseline = [0, 0]
         linebox = [float(i) for i in linebox]
@@ -95,19 +100,51 @@ def add_text_layer(pdf, image, height, dpi):
             rawtext = word.text_content()#.strip()
             if rawtext == '':
                 continue
-            font_width = pdf.stringWidth(rawtext, 'invisible', 8)
+
+
+            # box = p1.search(title).group(1).split()
+            # box = [float(i) for i in box]
+            #
+            # font_width = pdf.stringWidth(rawtext, 'Courier', 8)
+            # box_width = box[2] - box[0]
+            # font_size = round (8 * box_width / font_width, 0)
+            #
+            # # text.setFont('invisible', font_size)
+            # pdf.setFont('Courier', font_size)
+            #
+            # pdf.drawString(box[0], box[1], rawtext)
+
+
+
+
+
+            # if rawtext == 'groups ':
+            #     xxx = 0
+            # font_width = pdf.stringWidth(rawtext, 'invisible', 8)
+            font_width = pdf.stringWidth(rawtext, 'Helvetica', 8)
             if font_width <= 0:
                 continue
-            box = p1.search(word.attrib['title']).group(1).split()
+            title = word.attrib['title']
+            box = p1.search(title).group(1).split()
             box = [float(i) for i in box]
-            b = polyval(baseline,
-                        (box[0] + box[2]) / 2 - linebox[0]) + linebox[3]
+            # b = polyval(baseline,
+            #             (box[0] + box[2]) / 2 - linebox[0]) + linebox[3]
             text = pdf.beginText()
             text.setTextRenderMode(3)  # double invisible
-            text.setFont('invisible', 8)
-            text.setTextOrigin(box[0] * 72 / dpi, height - b * 72 / dpi)
-            box_width = (box[2] - box[0]) * 72 / dpi
-            text.setHorizScale(100.0 * box_width / font_width)
+
+            box_width = box[2] - box[0]
+            font_size = 8 * box_width / font_width
+            # new_font_width = pdf.stringWidth(rawtext, 'Helvetica', font_size)
+
+            # text.setFont('invisible', font_size)
+            text.setFont('Helvetica', font_size)
+            # text.setTextOrigin(box[0] * 72 / dpi, height - b * 72 / dpi)
+            # box_width = (box[2] - box[0]) * 72 / dpi
+            # text.setTextOrigin(box[0], height - b)
+            text.setTextOrigin(box[0] - baseline[0], height - box[3] - baseline[1])
+            box_width = (box[2] - box[0])
+
+            # text.setHorizScale(100.0 * box_width / font_width)
             text.textLine(rawtext)
             pdf.drawText(text)
 

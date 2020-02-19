@@ -2,24 +2,26 @@ const fs = require('fs');
 const path = require('path');
 const _ = require('highland');
 const fastXmlParser = require('fast-xml-parser');
+const utils = require('./utils');
 const yargs = require('yargs');
 
 //const resultsPath = './CBP_FOIA_Response_OCR.json';
 
-const pdf = require('./pdf');
-const gcv = require('./gcv');
-const utils = require('./utils');
 
 function test(yargs) {
     console.log(yargs)
 }
 
 function ocrPDF(yargs) {
+    const gcv = require('./gcv');
+    gcv.performGCV(null);            // this must be initialized before pdf (but why?!)
+
+    const pdf = require('./pdf');
 
     const inputFile = yargs.inputPDF;
     const outputDir = yargs.outputDir || path.basename(inputFile) + '_ocr';
     const outputPath = path.join(path.dirname(inputFile), outputDir);
-
+    
     let metadata = {};
 
     let pdfStream = _(pdf.convertPDF(inputFile, outputDir))
@@ -51,6 +53,8 @@ function ocrPDF(yargs) {
 }
 
 function recreatePDF() {
+    const pdf = require('./pdf');
+
     let pdfPath = path.parse(inputFile);
     let pdfXML = path.join(pdfPath.dir, outputDir, pdfPath.base.replace(pdfPath.ext, '.xml'));
     let inputPDF = pdf.initializePDF(inputFile);
@@ -77,7 +81,7 @@ function recreatePDF() {
     //.reduce(inputPDF, pdf.parseGCV)
     .reduce(inputPDF, pdf.enrichPage) // convert the pdf xml into a page.
     .done(f => inputPDF.endPDF())
-    //.each(console.log)
+    //.each(console.log);
 }
 
 function addGCVText() {

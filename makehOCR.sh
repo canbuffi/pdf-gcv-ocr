@@ -6,6 +6,7 @@ then
         line=`cat $1/*.xml | grep "$imageName"`
         height=`echo $line | sed -n 's/.*height="\([^"]*\).*/\1/p'`
         width=`echo $line | sed -n 's/.*width="\([^"]*\).*/\1/p'`
+        echo "./lib/gcv2hocr.py $pdfPage -H 1764 -W 2283 > `dirname $pdfPage`/`basename "$pdfPage" .json`.hocr"
         ./lib/gcv2hocr.py $pdfPage -H 1764 -W 2283 > `dirname $pdfPage`/`basename "$pdfPage" .json`.hocr
     done
 else
