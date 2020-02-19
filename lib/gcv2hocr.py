@@ -81,10 +81,20 @@ def makeLine(page, box):
                     content=[],
                     box=box)
 
+def check_box(box, min_margin, max_x, max_y):
+    for b in box:
+        if b["x"] < min_margin or b["x"] > max_x - min_margin:
+            return False
+        if b["y"] < min_margin or b["y"] > max_y - min_margin:
+            return False
+    return True
+
 def fromResponse(resp, baseline_tolerance=2, **kwargs):
     last_baseline = -100
     page = None
     curline = None
+
+    min_margin = 5
     
     for page_id, pageObj in enumerate(resp['fullTextAnnotation']['pages']):
         page = GCVAnnotation(
@@ -98,8 +108,13 @@ def fromResponse(resp, baseline_tolerance=2, **kwargs):
                 box = paragraph['boundingBox']['vertices']
 
                 curline = makeLine(page, box)
+                do_add = True
                 
                 for wordObj in paragraph['words']:
+                    box = wordObj['boundingBox']['vertices']
+
+                    do_add = do_add and check_box(box, min_margin, pageObj['width'], pageObj['height'])
+
                     wordText = ""
                     for symbol in wordObj['symbols']:
                         wordText += symbol['text']
@@ -111,11 +126,12 @@ def fromResponse(resp, baseline_tolerance=2, **kwargs):
                                 elif detectedBreak['type'] == 'LINE_BREAK':
                                     wordText += " "
 
-                    box = wordObj['boundingBox']['vertices']
                     word = GCVAnnotation(ocr_class='ocrx_word', content=escape(wordText), box=box)
                     word.htmlid="word_%d_%d" % (len(page.content) - 1, len(curline.content))
                     curline.content.append(word)
-                page.content.append(curline)
+
+                if do_add:
+                    page.content.append(curline)
 #        for line in page.content:
             #line.maximize_bbox()
 
