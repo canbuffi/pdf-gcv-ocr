@@ -43,7 +43,10 @@ function prepareGCV(images) {
             features: [{
                 type: "DOCUMENT_TEXT_DETECTION",
                 model: 'builtin/latest'
-            }]
+            }],
+            // imageContext: {
+            //     languageHints: ["pl"]
+            // }
         }
     })
 }

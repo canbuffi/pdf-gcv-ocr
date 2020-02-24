@@ -11,11 +11,18 @@ import os
 import json
 import re
 import codecs
+import argparse
 
 directory = '.'
 MIN_CONFIDENCE_BLOCK = 0.75
 
-def main():
+def main(confidence):
+
+	if confidence is None:
+		confidence = MIN_CONFIDENCE_BLOCK
+	else:
+		confidence = 0.01 * confidence
+
 	combined_out = codecs.open("combined.txt", "w", "utf-8")
 	file_count = 0
 	for file_name in sorted(os.listdir(directory), key=os.path.getmtime):
@@ -23,7 +30,7 @@ def main():
 			with open(file_name) as f:
 				data = json.load(f)
 				f.close()
-				txt = ocr_json_to_text(data)
+				txt = ocr_json_to_text(data, confidence)
 				if txt is not None:
 					txt = correct_spaces(txt)
 					print("\n\n\n**** PAGE %d (file %s) %s" % (file_count, file_name, txt))
@@ -43,7 +50,7 @@ def main():
 	combined_out.close()
 
 
-def ocr_json_to_text(data):
+def ocr_json_to_text(data, confidence):
 	if not "fullTextAnnotation" in data:
 		return None
 
@@ -51,7 +58,7 @@ def ocr_json_to_text(data):
 
 	for page in data["fullTextAnnotation"]["pages"]:
 		for block in page["blocks"]:
-			if block["blockType"] == "TEXT" and block["confidence"] > MIN_CONFIDENCE_BLOCK:
+			if block["blockType"] == "TEXT" and block["confidence"] > confidence:
 				txt = txt + "\n"
 				for paragraph in block["paragraphs"]:
 					txt = txt + "\n"
@@ -84,4 +91,13 @@ def correct_spaces(txt):
 
 
 if __name__ == '__main__':
-	main()
+    parser = argparse.ArgumentParser(
+        description="Extract text from a group of Google Cloud JSON files")
+    parser.add_argument(
+        '-c', '--conf',
+        help = "confidence threashold to include in the output text, in percent. Default =" + str(100*MIN_CONFIDENCE_BLOCK),
+        required = False,
+        type = int
+    )
+    args = parser.parse_args()
+    main(args.conf)
