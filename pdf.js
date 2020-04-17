@@ -19,9 +19,10 @@ function convertPDF(inputFile, outputDir) {
 
     return new Promise((resolve, reject) => {
         const inputPath = path.parse(inputFile);
-        const outputFile = path.join(inputPath.dir, outputDir, inputPath.name);
-        console.warn('Only looking at first 50 pages for demo, CHANGE THIS BEFORE PRODUCTION.');
-        exec(`mkdir -p "${path.dirname(outputFile)}" && pdftohtml -zoom 4 -c -l 50 -xml "${inputFile}" "${outputFile}"`, async (error, stdout, stderr) => {
+        const outputFile = path.join(inputPath.dir, outputDir, inputPath.name + "-%03d.jpg");
+//        console.warn('Only looking at first 100 pages for demo, CHANGE THIS BEFORE PRODUCTION.');
+//        exec(`mkdir -p "${path.dirname(outputFile)}" && pdftohtml -zoom 4 -c -l 100 -xml "${inputFile}" "${outputFile}"`, async (error, stdout, stderr) => {
+        exec(`mkdir -p "${path.dirname(outputFile)}" && convert -density 150 "${inputFile}" -quality 90 "${outputFile}"`, async (error, stdout, stderr) => {
             if (error || stderr) reject([error, stderr]);
             else {
                 outputDir = path.dirname(outputFile);
