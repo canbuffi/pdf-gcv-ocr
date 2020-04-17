@@ -30,7 +30,7 @@ function ocrPDF(yargs) {
         fs.writeFileSync(path.join(metadata.outputDir, "metadata.json"), JSON.stringify(metadata));
     })
     .pluck('pdfImages')
-    .flatten()
+    .flatten();
     
     let gcvStream = pdfStream.fork();
 
