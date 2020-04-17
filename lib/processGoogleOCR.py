@@ -16,41 +16,52 @@ import argparse
 directory = '.'
 MIN_CONFIDENCE_BLOCK = 0.75
 
-def main(confidence):
+def main(args):
 
-	if confidence is None:
+	if args.conf is None:
 		confidence = MIN_CONFIDENCE_BLOCK
 	else:
 		confidence = 0.01 * confidence
 
-	combined_out = codecs.open("combined.txt", "w", "utf-8")
+	if not args.nocombined:
+		combined_out = codecs.open("combined.txt", "w", "utf-8")
 	file_count = 0
 	for file_name in sorted(os.listdir(directory), key=os.path.getmtime):
 		if file_name.endswith(".json"):
 			with open(file_name) as f:
 				data = json.load(f)
 				f.close()
-				txt = ocr_json_to_text(data, confidence)
+				txt = ocr_json_to_text(args, data, confidence)
 				if txt is not None:
 					txt = correct_spaces(txt)
-					print("\n\n\n**** PAGE %d (file %s) %s" % (file_count, file_name, txt))
 
-					outf = open(file_name + ".txt", "w")
-					outf.write(txt.encode("utf-8"))
-					outf.close
+					if args.noheaders:
+						print(txt)
+					else:
+						print("\n\n\n**** PAGE %d (file %s) %s" % (file_count, file_name, txt))
 
-					if	file_count > 0:
-						combined_out.write("\n\n\n");
+					if not args.noindividual:
+						outf = open(file_name + ".txt", "w")
+						outf.write(txt)
+						outf.close
+
 					file_count += 1
-					combined_out.write("**** PAGE %d (file %s)" % (file_count, file_name));
-					combined_out.write(txt);
+
+					if not args.nocombined:
+						if not args.noheaders:
+							if file_count > 0:
+								combined_out.write("\n\n\n");
+							combined_out.write("**** PAGE %d (file %s)" % (file_count, file_name));
+						combined_out.write(txt);
 			continue
 		else:
 			continue
-	combined_out.close()
+
+	if not args.nocombined:
+		combined_out.close()
 
 
-def ocr_json_to_text(data, confidence):
+def ocr_json_to_text(args, data, confidence):
 	if not "fullTextAnnotation" in data:
 		return None
 
@@ -59,18 +70,31 @@ def ocr_json_to_text(data, confidence):
 	for page in data["fullTextAnnotation"]["pages"]:
 		for block in page["blocks"]:
 			if block["blockType"] == "TEXT" and block["confidence"] > confidence:
-				txt = txt + "\n"
+				partxt = ""
 				for paragraph in block["paragraphs"]:
-					txt = txt + "\n"
+#					txt = txt + "***PAR***"
 					word_count = 0
 					for word in paragraph["words"]:
 						w = ""
 						if word_count > 0:
-							txt += " "
-						word_count += 1
+							partxt += " "
 						for symbol in word["symbols"]:
-							w = w + symbol["text"]
-						txt = txt + w
+							doOut = True
+							if args.minx and symbol["boundingBox"]["vertices"][0]["x"] < args.minx:
+									doOut = False
+							if args.maxx and symbol["boundingBox"]["vertices"][1]["x"] > args.maxx:
+									doOut = False
+							if args.miny and symbol["boundingBox"]["vertices"][0]["y"] < args.miny:
+									doOut = False
+							if args.maxy and symbol["boundingBox"]["vertices"][2]["y"] > args.maxy:
+									doOut = False
+							if doOut:
+								w = w + symbol["text"]
+						if w != "":
+							word_count += 1
+						partxt = partxt + w
+				if partxt != "":
+					txt = txt + partxt + "\n"
 
 	return txt
 
@@ -96,8 +120,42 @@ if __name__ == '__main__':
     parser.add_argument(
         '-c', '--conf',
         help = "confidence threashold to include in the output text, in percent. Default =" + str(100*MIN_CONFIDENCE_BLOCK),
-        required = False,
+        type = int
+    )
+    parser.add_argument(
+        '-nc', '--nocombined',
+        help = "do not write the combined text file",
+        action='store_true'
+    )
+    parser.add_argument(
+        '-ni', '--noindividual',
+        help = "do not write the individual text files",
+        action='store_true'
+    )
+    parser.add_argument(
+        '-nh', '--noheaders',
+        help = "do not output the page headers",
+        action='store_true'
+    )
+    parser.add_argument(
+        '-minx', '--minx',
+        help = "left border of cecognized text, if defined",
+        type = int
+    )
+    parser.add_argument(
+        '-maxx', '--maxx',
+        help = "right border of cecognized text, if defined",
+        type = int
+    )
+    parser.add_argument(
+        '-miny', '--miny',
+        help = "top border of cecognized text, if defined",
+        type = int
+    )
+    parser.add_argument(
+        '-maxy', '--maxy',
+        help = "bottom border of cecognized text, if defined",
         type = int
     )
     args = parser.parse_args()
-    main(args.conf)
+    main(args)
