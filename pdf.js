@@ -22,8 +22,13 @@ function convertPDF(inputFile, outputDir) {
         const outputFile = path.join(inputPath.dir, outputDir, inputPath.name + "-%03d.jpg");
 //        console.warn('Only looking at first 100 pages for demo, CHANGE THIS BEFORE PRODUCTION.');
 //        exec(`mkdir -p "${path.dirname(outputFile)}" && pdftohtml -zoom 4 -c -l 100 -xml "${inputFile}" "${outputFile}"`, async (error, stdout, stderr) => {
-        exec(`mkdir -p "${path.dirname(outputFile)}" && convert -density 150 "${inputFile}" -quality 90 "${outputFile}"`, async (error, stdout, stderr) => {
-            if (error || stderr) reject([error, stderr]);
+        const commandLine = `mkdir -p "${path.dirname(outputFile)}" && convert -density 150 "${inputFile}" -quality 90 "${outputFile}"`;
+        console.log("... running ImageMagick, command line: " + commandLine);
+        exec(commandLine, async (error, stdout, stderr) => {
+            if (stderr) {
+                console.log(`Errors in ImageMagick processing of the images, but will try to proceed anyway.\n Reported errors: ${stderr}`);
+            }
+            if (error) reject([error, stderr]);
             else {
                 outputDir = path.dirname(outputFile);
                 
@@ -41,7 +46,10 @@ function convertPDF(inputFile, outputDir) {
                 });
             }
         });
-    })
+    });
+    // .catch(function(error) {
+    //     console.log("Error: ", error);
+    // });
 }
 
 function readPDF(inputFile){
