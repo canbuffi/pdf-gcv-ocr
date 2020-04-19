@@ -6,3 +6,4 @@ credentials.json
 *-lock*
 *.idea
 *_ocr/
+.hocr
