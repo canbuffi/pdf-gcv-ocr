@@ -70,9 +70,12 @@ def ocr_json_to_text(args, data, confidence):
 	for page in data["fullTextAnnotation"]["pages"]:
 		for block in page["blocks"]:
 			if block["blockType"] == "TEXT" and block["confidence"] > confidence:
+				if args.debug:
+					txt = txt + "***BLK***"
 				partxt = ""
 				for paragraph in block["paragraphs"]:
-#					txt = txt + "***PAR***"
+					if args.debug:
+						txt = txt + "***PAR***"
 					word_count = 0
 					for word in paragraph["words"]:
 						w = ""
@@ -156,6 +159,11 @@ if __name__ == '__main__':
         '-maxy', '--maxy',
         help = "bottom border of cecognized text, if defined",
         type = int
+    )
+    parser.add_argument(
+        '-d', '--debug',
+        help = "Output OCR debug information",
+        action='store_true'
     )
     args = parser.parse_args()
     main(args)
